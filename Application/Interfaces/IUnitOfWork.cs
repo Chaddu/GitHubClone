@@ -15,7 +15,7 @@ public interface IUnitOfWork
 
     IRepositoryMemberRepository RepositoryMembers { get; }
 
-    IGenericRepository<RepositoryStar> RepositoryStars { get; }
+    IRepositoryStarRepository RepositoryStars { get; }
 
     IBranchRepository Branches { get; }
 
@@ -34,5 +34,6 @@ public interface IUnitOfWork
     INotificationRepository Notifications { get; }
 
     IActivityRepository Activities { get; }
+
     Task<int> SaveChangesAsync();
 }

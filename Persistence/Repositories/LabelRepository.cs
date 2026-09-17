@@ -13,12 +13,16 @@ public class LabelRepository : GenericRepository<Label>, ILabelRepository
 
     public async Task<bool> ExistsByNameAsync(int repositoryId, string name)
     {
-        return await _dbSet.AnyAsync(x => x.Name == name);
+        return await _dbSet.AnyAsync(x =>
+        x.RepositoryId == repositoryId &&
+        x.Name == name);
     }
 
     public async Task<Label?> GetByNameAsync(int repositoryId, string name)
     {
-        return await _dbSet.FirstOrDefaultAsync(x => x.Name == name);
+        return await _dbSet.FirstOrDefaultAsync(x =>
+        x.RepositoryId == repositoryId &&
+        x.Name == name);
     }
 
     public async Task<List<Label>> GetByRepositoryIdAsync(int repositoryId)

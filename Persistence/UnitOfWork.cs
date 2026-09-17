@@ -14,7 +14,7 @@ public class UnitOfWork : IUnitOfWork
     private readonly IOrganizationMemberRepository _organizationMembers;
     private readonly IRepositoryRepository _repositories;
     private readonly IRepositoryMemberRepository _repositoryMembers;
-    private readonly IGenericRepository<RepositoryStar> _repositoryStars;
+    private readonly IRepositoryStarRepository _repositoryStars;
     private readonly IBranchRepository _branches;
     private readonly IIssueRepository _issues;
     private readonly ILabelRepository _labels;
@@ -33,7 +33,7 @@ public class UnitOfWork : IUnitOfWork
         _organizationMembers = new OrganizationMemberRepository(_context);
         _repositories = new RepositoryRepository(_context);
         _repositoryMembers = new RepositoryMemberRepository(_context);
-        _repositoryStars = new GenericRepository<RepositoryStar>(_context);
+        _repositoryStars = new RepositoryStarRepository(_context);
         _branches = new BranchRepository(_context);
         _issues = new IssueRepository(_context);
         _labels = new LabelRepository(_context);
@@ -57,7 +57,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepositoryMemberRepository RepositoryMembers =>
         _repositoryMembers;
 
-    public IGenericRepository<RepositoryStar> RepositoryStars =>
+    public IRepositoryStarRepository RepositoryStars =>
         _repositoryStars;
 
     public IBranchRepository Branches => _branches;

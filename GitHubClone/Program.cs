@@ -31,6 +31,14 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IRepositoryService, RepositoryService>();
+builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<IIssueService, IssueService>();
+builder.Services.AddScoped<ILabelService, LabelService>();
+builder.Services.AddScoped<IPullRequestService, PullRequestService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IRepositoryStarService, RepositoryStarService>();
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 builder.Services.AddAutoMapper(
