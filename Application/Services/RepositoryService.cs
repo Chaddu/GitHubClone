@@ -12,7 +12,11 @@ public class RepositoryService(IUnitOfWork unitOfWork, IMapper mapper) : IReposi
 {
     public async Task<Result<RepositoryResponse>> CreateAsync(CreateRepositoryRequest request, int currentUserId)
     {
-        var exists = await unitOfWork.Repositories.ExistsByNameAsync(request.Name);
+        var exists = await unitOfWork.Repositories
+    .ExistsByNameAsync(
+        request.Name,
+        request.OrganizationId == null ? currentUserId : null,
+        request.OrganizationId);
         if (exists)
             return Result<RepositoryResponse>.Failure("Repository with the same name already exists.", ErrorType.Conflict);
 
@@ -62,80 +66,178 @@ public class RepositoryService(IUnitOfWork unitOfWork, IMapper mapper) : IReposi
     {
         var repo = await unitOfWork.Repositories.GetByIdAsync(id);
 
-        if(repo == null)
-            return Result.Failure("Repository not found.", ErrorType.NotFound);
+        if (repo == null)
+            return Result.Failure("Repository not found.",ErrorType.NotFound);
+        
 
-        if (repo.OwnerId != currentUserId)
-            return Result.Failure("You don't have permission to delete this repository.", ErrorType.Forbidden);
+        var hasPermission = await HasManagePermissionAsync(repo,currentUserId);
+
+        if (!hasPermission)
+            return Result.Failure("You don't have permission to delete this repository.",ErrorType.Forbidden);
 
         unitOfWork.Repositories.Delete(repo);
         await unitOfWork.SaveChangesAsync();
 
-        var respone = mapper.Map<RepositoryResponse>(repo);
-
-        return Result<RepositoryResponse>.Success(respone, "Repository deleted successfully.");
+        return Result.Success("Repository deleted successfully.");
     }
 
-    public async Task<Result<RepositoryResponse>> GetByIdAsync(int id)
+    public async Task<Result<RepositoryResponse>> GetByIdAsync(int id,int currentUserId)
     {
         var repo = await unitOfWork.Repositories.GetByIdAsync(id);
 
-        if(repo == null)
-            return Result<RepositoryResponse>.Failure("Repository not found.", ErrorType.NotFound);
+        if (repo == null)
+            return Result<RepositoryResponse>.Failure("Repository not found.",ErrorType.NotFound);
+        
+
+        var hasPermission = await HasViewPermissionAsync(repo,currentUserId);
+
+        if (!hasPermission)
+            return Result<RepositoryResponse>.Failure("You don't have permission to view this repository.",ErrorType.Forbidden);
+        
 
         var response = mapper.Map<RepositoryResponse>(repo);
 
-        return Result<RepositoryResponse>.Success(response, "Repository retrieved successfully.");
-    }
-
-    public async Task<Result<RepositoryResponse>> GetByNameAsync(string name)
-    {
-        var repo = await unitOfWork.Repositories.GetByNameAsync(name);
-
-        if(repo == null)
-            return Result<RepositoryResponse>.Failure("Repository not found.", ErrorType.NotFound);
-
-        var response = mapper.Map<RepositoryResponse>(repo);
-
-        return Result<RepositoryResponse>.Success(response, "Repository retrieved successfully.");
+        return Result<RepositoryResponse>.Success(response,"Repository retrieved successfully.");
     }
 
     public async Task<Result<List<RepositoryResponse>>> GetByOwnerIdAsync(int ownerId)
     {
-        var repo = await unitOfWork.Repositories.GetByOwnerIdAsync(ownerId);
+        var repositories = await unitOfWork.Repositories.GetByOwnerIdAsync(ownerId);
 
-        if(repo == null)
-            return Result<List<RepositoryResponse>>.Failure("No repositories found for this owner.", ErrorType.NotFound);
+        if (repositories == null || repositories.Count == 0)
+            return Result<List<RepositoryResponse>>.Failure("No repositories found for this owner.",ErrorType.NotFound);
 
-        var response = mapper.Map<List<RepositoryResponse>>(repo);
+        var response = mapper.Map<List<RepositoryResponse>>(repositories);
 
-        return Result<List<RepositoryResponse>>.Success(response, "Repositories retrieved successfully.");
+        return Result<List<RepositoryResponse>>.Success(response,"Repositories retrieved successfully.");
     }
 
-    public async Task<Result<RepositoryResponse>> UpdateAsync(int id, UpdateRepositoryRequest request, int currentUserId)
+    public async Task<Result<RepositoryResponse>> GetByNameAsync(string name,int currentUserId)
+    {
+        var repo = await unitOfWork.Repositories.GetByNameAsync(name);
+
+        if (repo == null)
+            return Result<RepositoryResponse>.Failure("Repository not found.",ErrorType.NotFound);
+
+        var hasPermission = await HasViewPermissionAsync(repo,currentUserId);
+
+        if (!hasPermission)
+            return Result<RepositoryResponse>.Failure("You don't have permission to view this repository.",ErrorType.Forbidden);
+
+        var response = mapper.Map<RepositoryResponse>(repo);
+
+        return Result<RepositoryResponse>.Success(response,"Repository retrieved successfully.");
+    }
+
+    public async Task<Result<RepositoryResponse>> UpdateAsync(
+    int id,
+    UpdateRepositoryRequest request,
+    int currentUserId)
     {
         var repo = await unitOfWork.Repositories.GetByIdAsync(id);
 
-        if(repo == null)
+        if (repo == null)
             return Result<RepositoryResponse>.Failure("Repository not found.", ErrorType.NotFound);
 
-        if(repo.OwnerId != currentUserId)
-            return Result<RepositoryResponse>.Failure("You don't have permission to update this repository.", ErrorType.Forbidden);
+        var hasPermission = await HasManagePermissionAsync(repo,currentUserId);
 
-        if(repo.Name != request.Name)
+        if (!hasPermission)
+            return Result<RepositoryResponse>.Failure("You don't have permission to update this repository.",ErrorType.Forbidden);
+
+        if (repo.Name != request.Name)
         {
-            var exists = await unitOfWork.Repositories.ExistsByNameAsync(request.Name);
+            var exists = await unitOfWork.Repositories
+                .ExistsByNameAsync(request.Name);
+
             if (exists)
-                return Result<RepositoryResponse>.Failure("Repository with the same name already exists.", ErrorType.Conflict);
+            {
+                return Result<RepositoryResponse>.Failure(
+                    "Repository with the same name already exists.",
+                    ErrorType.Conflict);
+            }
         }
 
-        mapper.Map<RepositoryResponse>(repo);
+        mapper.Map(request, repo);
 
         unitOfWork.Repositories.Update(repo);
         await unitOfWork.SaveChangesAsync();
 
         var response = mapper.Map<RepositoryResponse>(repo);
 
-        return Result<RepositoryResponse>.Success(response, "Repository updated successfully.");
+        return Result<RepositoryResponse>.Success(response,"Repository updated successfully.");
     }
+
+    public async Task<Result<List<RepositoryResponse>>> GetByOrganizationIdAsync(int organizationId)
+    {
+        var organization = await unitOfWork.Organizations.GetByIdAsync(organizationId);
+
+        if (organization == null)
+            return Result<List<RepositoryResponse>>.Failure("Organization was not found", ErrorType.NotFound);
+
+        var repo = await unitOfWork.Repositories.GetByOrganizationIdAsync(organizationId);
+
+        var response = mapper.Map<List<RepositoryResponse>>(repo);
+
+        return Result<List<RepositoryResponse>>.Success(response);
+    }
+
+    private async Task<bool> HasManagePermissionAsync(
+    Domain.Entities.Repository repository,
+    int currentUserId)
+    {
+        if (repository.OwnerId == currentUserId)
+            return true;
+
+        if (repository.OrganizationId != null)
+        {
+            var organizationMembership = 
+                await unitOfWork.OrganizationMembers.GetMembershipAsync(
+                    repository.OrganizationId.Value,
+                    currentUserId);
+
+            if (organizationMembership is not null &&(organizationMembership.Role == OrganizationRole.Owner ||
+                organizationMembership.Role == OrganizationRole.Admin))
+                 return true;
+            
+        }
+
+        var repositoryMembership =
+            await unitOfWork.RepositoryMembers.GetMembershipAsync(
+                repository.Id,
+                currentUserId);
+
+        return repositoryMembership?.Permission == RepositoryPermission.Admin;
+    }
+
+
+    private async Task<bool> HasViewPermissionAsync(
+    Domain.Entities.Repository repository,
+    int currentUserId)
+    {
+        if (repository.Visibility == RepositoryVisibility.Public)
+            return true;
+
+        if (repository.OwnerId == currentUserId)
+            return true;
+
+        if (repository.OrganizationId != null)
+        {
+            var organizationMembership =
+                await unitOfWork.OrganizationMembers.GetMembershipAsync(
+                    repository.OrganizationId.Value,
+                    currentUserId);
+
+            if (organizationMembership != null)
+                return true;
+        }
+
+        var repositoryMembership =
+            await unitOfWork.RepositoryMembers.GetMembershipAsync(
+                repository.Id,
+                currentUserId);
+
+        return repositoryMembership != null;
+    }
+
+   
 }

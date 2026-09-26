@@ -20,14 +20,14 @@ public class RepositoryController(IRepositoryService repositoryService) : BaseCo
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetRepositoryById(int id)
     {
-        var result = await repositoryService.GetByIdAsync(id);
+        var result = await repositoryService.GetByIdAsync(id, GetUserId());
         return HandleResult(result);
     }
 
     [HttpGet("name/{name}")]
     public async Task<IActionResult> GetRepositoryByName(string name)
     {
-        var result = await repositoryService.GetByNameAsync(name);
+        var result = await repositoryService.GetByNameAsync(name, GetUserId());
         return HandleResult(result);
     }
 

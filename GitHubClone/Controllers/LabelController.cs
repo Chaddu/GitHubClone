@@ -15,7 +15,7 @@ public class LabelController(ILabelService labelService) : BaseController
     [HttpGet("repository/{repositoryId:int}")]
     public async Task<IActionResult> GetLabelsByRepositoryId(int repositoryId)
     {
-        var result = await labelService.GetByRepositoryIdAsync(repositoryId);
+        var result = await labelService.GetByRepositoryIdAsync(repositoryId, GetUserId());
         return HandleResult(result);
     }
 
@@ -23,7 +23,7 @@ public class LabelController(ILabelService labelService) : BaseController
    
     public async Task<IActionResult> GetByName(int repositoryId, string name)
     {
-        var result = await labelService.GetByNameAsync(repositoryId,name);
+        var result = await labelService.GetByNameAsync(repositoryId,name, GetUserId());
         return HandleResult(result);
     }
 
@@ -37,14 +37,14 @@ public class LabelController(ILabelService labelService) : BaseController
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateLabel(int id, [FromBody] UpdateLabelRequest request)
     {
-        var result = await labelService.UpdateAsync(id, request);
+        var result = await labelService.UpdateAsync(id, request, GetUserId());
         return HandleResult(result);
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await labelService.DeleteAsync(id);
+        var result = await labelService.DeleteAsync(id, GetUserId());
         return HandleResult(result);
     }
 

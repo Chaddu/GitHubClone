@@ -13,21 +13,21 @@ public class PullRequestController(IPullRequestService pullRequestService) : Bas
     [HttpGet("repository/{repositoryId:int}")]
     public async Task<IActionResult> GetByRepositoryId(int repositoryId)
     {
-        var result = await pullRequestService.GetByRepositoryIdAsync(repositoryId);
+        var result = await pullRequestService.GetByRepositoryIdAsync(repositoryId, GetUserId());
         return HandleResult(result);
     }
 
     [HttpGet("author/{authorId:int}")]
     public async Task<IActionResult> GetByAuthorId(int authorId)
     {
-        var result = await pullRequestService.GetByAuthorIdAsync(authorId);
+        var result = await pullRequestService.GetByAuthorIdAsync(authorId, GetUserId());
         return HandleResult(result);
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await pullRequestService.GetByIdAsync(id);
+        var result = await pullRequestService.GetByIdAsync(id, GetUserId());
         return HandleResult(result);
     }
 

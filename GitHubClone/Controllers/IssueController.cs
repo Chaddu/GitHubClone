@@ -13,14 +13,14 @@ public class IssueController(IIssueService issueService) : BaseController
     [HttpGet("Repository/{repositoryId:int}")]
     public async Task<IActionResult> GetByRepositoryId(int repositoryId)
     {
-        var issues = await issueService.GetByRepositoryIdAsync(repositoryId);
+        var issues = await issueService.GetByRepositoryIdAsync(repositoryId, GetUserId());
         return HandleResult(issues);
     }
 
     [HttpGet("Repository/{repositoryId:int}/Open")]
     public async Task<IActionResult> GetOpenIssues(int repositoryId)
     {
-        var issues = await issueService.GetOpenIssuesAsync(repositoryId);
+        var issues = await issueService.GetOpenIssuesAsync(repositoryId, GetUserId());
         return HandleResult(issues);
     }
     [HttpGet("Author/{authorId:int}")]
@@ -32,7 +32,7 @@ public class IssueController(IIssueService issueService) : BaseController
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var issue = await issueService.GetByIdAsync(id);
+        var issue = await issueService.GetByIdAsync(id, GetUserId());
         
         return HandleResult(issue);
     }

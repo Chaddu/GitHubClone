@@ -6,7 +6,6 @@ using Application.Interfaces.Services;
 using AutoMapper;
 using Domain.Entities;
 using Domain.Enums;
-using System.Text.RegularExpressions;
 
 namespace Application.Services;
 
@@ -78,8 +77,20 @@ public class RepositoryMemberService(IUnitOfWork unitOfWork, IMapper mapper) : I
 
         var member = await unitOfWork.RepositoryMembers.GetByIdAsync(memberId);
 
-        if(member == null || member.RepositoryId != repositoryId)
-            return Result.Failure("Member not found in this repository", ErrorType.NotFound);
+        if (member == null || member.RepositoryId != repositoryId)
+            return Result.Failure(
+                "Member not found in this repository",
+                ErrorType.NotFound);
+
+        if (member.Permission == RepositoryPermission.Admin &&
+            repository.OwnerId != currentUserId)
+        {
+            return Result.Failure(
+                "Only the repository owner can remove an Admin.",
+                ErrorType.Forbidden);
+        }
+
+        unitOfWork.RepositoryMembers.Delete(member);
 
 
         unitOfWork.RepositoryMembers.Delete(member);
@@ -103,8 +114,28 @@ public class RepositoryMemberService(IUnitOfWork unitOfWork, IMapper mapper) : I
 
         var member = await unitOfWork.RepositoryMembers.GetByIdAsync(memberId);
 
-        if(member == null || member.RepositoryId != repositoryId)
-            return Result.Failure("Member not found in this repository", ErrorType.NotFound);
+        if (member == null || member.RepositoryId != repositoryId)
+            return Result.Failure(
+                "Member not found in this repository",
+                ErrorType.NotFound);
+
+        if (member.Permission == RepositoryPermission.Admin &&
+            repository.OwnerId != currentUserId)
+        {
+            return Result.Failure(
+                "Only the repository owner can change an Admin's permission.",
+                ErrorType.Forbidden);
+        }
+
+        if (request.Permission == RepositoryPermission.Admin &&
+            repository.OwnerId != currentUserId)
+        {
+            return Result.Failure(
+                "Only the repository owner can grant Admin permission.",
+                ErrorType.Forbidden);
+        }
+
+        member.Permission = request.Permission;
 
         member.Permission = request.Permission;
 

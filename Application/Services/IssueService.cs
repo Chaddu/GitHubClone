@@ -18,6 +18,15 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
         if(repo == null)
             return Result<IssueResponse>.Failure("Repository not found.", ErrorType.NotFound);
 
+        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
+
+        if (membership == null)
+            return Result<IssueResponse>.Failure("You are not a member of this repository");
+
+        if (membership.Permission == RepositoryPermission.Viewer)
+            return Result<IssueResponse>.Failure("You don't have permission to create issues.", ErrorType.Forbidden);
+        
+
         var issue = mapper.Map<Issue>(request);
 
         issue.RepositoryId = repositoryId;
@@ -40,8 +49,19 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
         if(issue == null)
             return Result.Failure("Issue not found.", ErrorType.NotFound);
 
-        if(issue.CreatorId != currentUserId)
-            return Result.Failure("You don't have permission to delete this issue.", ErrorType.Forbidden);
+        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(issue.RepositoryId, currentUserId);
+
+        if (membership == null)
+            return Result.Failure("You don't have permission to delete this issue.",ErrorType.Forbidden);
+
+        if (membership.Permission != RepositoryPermission.Admin &&
+            membership.Permission != RepositoryPermission.Maintainer &&
+            issue.CreatorId != currentUserId)
+        {
+            return Result.Failure(
+                "You don't have permission to delete this issue.",
+                ErrorType.Forbidden);
+        }
 
         unitOfWork.Issues.Delete(issue);
         await unitOfWork.SaveChangesAsync();
@@ -53,20 +73,37 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
     {
         var issues = await unitOfWork.Issues.GetByAuthorIdAsync(authorId);
 
-        if(issues == null)
-            return Result<List<IssueResponse>>.Failure("No issues found for the given author ID.", ErrorType.NotFound);
-
         var response = mapper.Map<List<IssueResponse>>(issues);
 
         return Result<List<IssueResponse>>.Success(response);
     }
 
-    public async Task<Result<IssueResponse>> GetByIdAsync(int id)
+    public async Task<Result<IssueResponse>> GetByIdAsync(int id,int currentUserId)
     {
         var issue = await unitOfWork.Issues.GetByIdAsync(id);
 
-        if(issue == null)
-            return Result<IssueResponse>.Failure("Issue not found.", ErrorType.NotFound);
+        if (issue is null)
+            return Result<IssueResponse>.Failure("Issue not found.",ErrorType.NotFound);
+
+        var repository = await unitOfWork.Repositories.GetByIdAsync(issue.RepositoryId);
+
+        if (repository is null)
+            return Result<IssueResponse>.Failure("Repository not found.",ErrorType.NotFound);
+
+        if (repository.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers
+                .GetMembershipAsync(
+                    issue.RepositoryId,
+                    currentUserId);
+
+            if (membership is null)
+            {
+                return Result<IssueResponse>.Failure(
+                    "You do not have permission to view this issue.",
+                    ErrorType.Forbidden);
+            }
+        }
 
         var response = mapper.Map<IssueResponse>(issue);
 
@@ -74,24 +111,58 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
     }
 
 
-    public async Task<Result<List<IssueResponse>>> GetByRepositoryIdAsync(int repositoryId)
+    public async Task<Result<List<IssueResponse>>> GetByRepositoryIdAsync(int repositoryId,int currentUserId)
     {
-        var issue = await unitOfWork.Issues.GetByRepositoryIdAsync(repositoryId);
+        var repository = await unitOfWork.Repositories.GetByIdAsync(repositoryId);
 
-        if(issue == null)
-            return Result<List<IssueResponse>>.Failure("No issues found for the given repository ID.", ErrorType.NotFound);
-        
-        var response = mapper.Map<List<IssueResponse>>(issue);
+        if (repository is null)
+            return Result<List<IssueResponse>>.Failure("Repository not found.",ErrorType.NotFound);
+
+        if (repository.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers
+                .GetMembershipAsync(
+                    repositoryId,
+                    currentUserId);
+
+            if (membership is null)
+            {
+                return Result<List<IssueResponse>>.Failure(
+                    "You do not have permission to view this repository.",
+                    ErrorType.Forbidden);
+            }
+        }
+
+        var issues = await unitOfWork.Issues.GetByRepositoryIdAsync(repositoryId);
+
+        var response = mapper.Map<List<IssueResponse>>(issues);
 
         return Result<List<IssueResponse>>.Success(response);
     }
 
-    public async Task<Result<List<IssueResponse>>> GetOpenIssuesAsync(int repositoryId)
+    public async Task<Result<List<IssueResponse>>> GetOpenIssuesAsync(int repositoryId,int currentUserId)
     {
-        var issues = await unitOfWork.Issues.GetOpenIssuesByRepositoryIdAsync(repositoryId);
+        var repository = await unitOfWork.Repositories.GetByIdAsync(repositoryId);
 
-        if(issues == null)
-            return Result<List<IssueResponse>>.Failure("No open issues found for the given repository ID.", ErrorType.NotFound);
+        if (repository is null)
+            return Result<List<IssueResponse>>.Failure("Repository not found.",ErrorType.NotFound);
+
+        if (repository.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers
+                .GetMembershipAsync(
+                    repositoryId,
+                    currentUserId);
+
+            if (membership is null)
+            {
+                return Result<List<IssueResponse>>.Failure(
+                    "You do not have permission to view this repository.",
+                    ErrorType.Forbidden);
+            }
+        }
+
+        var issues = await unitOfWork.Issues.GetOpenIssuesByRepositoryIdAsync(repositoryId);
 
         var response = mapper.Map<List<IssueResponse>>(issues);
 
@@ -105,8 +176,19 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
         if(issue == null)
             return Result<IssueResponse>.Failure("Issue not found.", ErrorType.NotFound);
 
-        if(issue.CreatorId != currentUserId)
+        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(issue.RepositoryId, currentUserId);
+
+        if (membership == null)
             return Result<IssueResponse>.Failure("You don't have permission to update this issue.", ErrorType.Forbidden);
+
+        if (membership.Permission != RepositoryPermission.Admin &&
+            membership.Permission != RepositoryPermission.Maintainer &&
+            issue.CreatorId != currentUserId)
+        {
+            return Result<IssueResponse>.Failure(
+                "You don't have permission to update this issue.",
+                ErrorType.Forbidden);
+        }
 
         mapper.Map(request, issue);
 
@@ -117,4 +199,5 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
 
         return Result<IssueResponse>.Success(response);
     }
+
 }

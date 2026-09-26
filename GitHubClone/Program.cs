@@ -39,6 +39,8 @@ builder.Services.AddScoped<IPullRequestService, PullRequestService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IRepositoryStarService, RepositoryStarService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
 builder.Services.AddAutoMapper(

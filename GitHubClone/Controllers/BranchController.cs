@@ -13,7 +13,7 @@ public class BranchController(IBranchService branchService) : BaseController
     [HttpGet("Repository/{repositoryId:int}")]
     public async Task<IActionResult> GetByRepositoryId(int repositoryId)
     {
-        var result = await branchService.GetByRepositoryIdAsync(repositoryId);
+        var result = await branchService.GetByRepositoryIdAsync(repositoryId, GetUserId());
 
         return HandleResult(result);
     }
@@ -21,7 +21,7 @@ public class BranchController(IBranchService branchService) : BaseController
     [HttpGet("repository/{repositoryId:int}/name/{name}")]
     public async Task<IActionResult> GetByName(int repositoryId, string name)
     {
-        var result = await branchService.GetByNameAsync(repositoryId, name);
+        var result = await branchService.GetByNameAsync(repositoryId, name, GetUserId());
         return HandleResult(result);
     }
 
