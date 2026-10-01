@@ -9,7 +9,7 @@ using Domain.Enums;
 
 namespace Application.Services;
 
-public class LabelService(IUnitOfWork unitOfWork, IMapper mapper) : ILabelService
+public class LabelService(IUnitOfWork unitOfWork, IMapper mapper) : ILabelService    
 {
     public async Task<Result<LabelResponse>> CreateAsync(int repositoryId, CreateLabelRequest request, int currentUserId)
     {
@@ -18,14 +18,16 @@ public class LabelService(IUnitOfWork unitOfWork, IMapper mapper) : ILabelServic
         if (repo == null)
             return Result<LabelResponse>.Failure("Repository not found", ErrorType.NotFound);
 
-        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
+        if (repo.OwnerId != currentUserId)
+        {
+            var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
 
-        if (membership == null)
-            return Result<LabelResponse>.Failure("You are not a member of this repository.", ErrorType.Forbidden);
+            if (membership == null)
+                return Result<LabelResponse>.Failure("You are not a member of this repository.", ErrorType.Forbidden);
 
-        if (membership.Permission == RepositoryPermission.Viewer)
-            return Result<LabelResponse>.Failure("You don't have permission to create labels.", ErrorType.Forbidden);
-
+            if (membership.Permission == RepositoryPermission.Viewer)
+                return Result<LabelResponse>.Failure("You don't have permission to create labels.", ErrorType.Forbidden);
+        }
 
         var exists = await unitOfWork.Labels.ExistsByNameAsync(repositoryId, request.Name);
 

@@ -13,7 +13,7 @@ public class CommentController(ICommentService commentService) : BaseController
     [HttpGet("author/{authorId:int}")]
     public async Task<IActionResult> GetByAuthorId(int authorId)
     {
-        var result = await commentService.GetByAuthorIdAsync(authorId);
+        var result = await commentService.GetByAuthorIdAsync(authorId, GetUserId());
 
         return HandleResult(result);
     }
@@ -21,7 +21,7 @@ public class CommentController(ICommentService commentService) : BaseController
     [HttpGet("issue/{issueId:int}")]
     public async Task<IActionResult> GetByIssueId(int issueId)
     {
-        var result = await commentService.GetByIssueIdAsync(issueId);
+        var result = await commentService.GetByIssueIdAsync(issueId, GetUserId());
 
         return HandleResult(result);
     }
@@ -29,7 +29,7 @@ public class CommentController(ICommentService commentService) : BaseController
     [HttpGet("pull-request/{pullRequestId:int}")]
     public async Task<IActionResult> GetByPullRequestId(int pullRequestId)
     {
-        var result = await commentService.GetByPullRequestIdAsync(pullRequestId);
+        var result = await commentService.GetByPullRequestIdAsync(pullRequestId, GetUserId());
 
         return HandleResult(result);
     }
@@ -37,7 +37,7 @@ public class CommentController(ICommentService commentService) : BaseController
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await commentService.GetByIdAsync(id);
+        var result = await commentService.GetByIdAsync(id, GetUserId());
 
         return HandleResult(result);
     }

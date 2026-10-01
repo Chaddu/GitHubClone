@@ -18,17 +18,23 @@ public class BranchService(IUnitOfWork unitOfWork, IMapper mapper) : IBranchServ
         if(repo == null)
             return Result<BranchResponse>.Failure("Repository not found", ErrorType.NotFound);
 
-        var repositoryMembership =
-    await unitOfWork.RepositoryMembers.GetMembershipAsync(
-        repositoryId,
-        currentUserId);
+        if (repo.OwnerId != currentUserId)
+        {
+            var repositoryMembership =
+                await unitOfWork.RepositoryMembers.GetMembershipAsync(
+                    repositoryId,
+                    currentUserId);
 
-        if (repositoryMembership is null)
-            return Result<BranchResponse>.Failure("You are not a member of this repository.",ErrorType.Forbidden);
-        
+            if (repositoryMembership is null)
+                return Result<BranchResponse>.Failure(
+                    "You are not a member of this repository.",
+                    ErrorType.Forbidden);
 
-        if (repositoryMembership.Permission == RepositoryPermission.Viewer)
-            return Result<BranchResponse>.Failure("You don't have permission to create branches.",ErrorType.Forbidden);
+            if (repositoryMembership.Permission == RepositoryPermission.Viewer)
+                return Result<BranchResponse>.Failure(
+                    "You don't have permission to create branches.",
+                    ErrorType.Forbidden);
+        }
 
         var exists = await unitOfWork.Branches.ExistsByNameAsync(repositoryId, request.Name);
 

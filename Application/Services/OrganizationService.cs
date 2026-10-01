@@ -26,9 +26,19 @@ public class OrganizationService(IUnitOfWork unitOfWork, IMapper mapper) : IOrga
         await unitOfWork.Organizations.AddASync(organization);
         await unitOfWork.SaveChangesAsync();
 
-        var respone = mapper.Map<OrganizationResponse>(organization);
+        var membership = new OrganizationMember
+        {
+            OrganizationId = organization.Id,
+            UserId = userId,
+            Role = OrganizationRole.Owner
+        };
 
-        return Result<OrganizationResponse>.Success(respone);
+        await unitOfWork.OrganizationMembers.AddASync(membership);
+        await unitOfWork.SaveChangesAsync();
+
+        var response = mapper.Map<OrganizationResponse>(organization);
+
+        return Result<OrganizationResponse>.Success(response);
     }
 
     public async Task<Result> DeleteAsync(int id, int userId)

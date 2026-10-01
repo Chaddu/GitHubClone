@@ -1,11 +1,13 @@
 ﻿using Application.DTOs.Request;
 using Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GitHubClone.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class OrganizationController(IOrganizationService organizationService) : BaseController
 {
     [HttpPost]

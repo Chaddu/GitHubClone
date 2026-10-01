@@ -24,14 +24,12 @@ public class RepositoryMemberService(IUnitOfWork unitOfWork, IMapper mapper) : I
             return Result<RepositoryMemberResponse>.Failure("You are not allowed to manage members of this repository", ErrorType.Forbidden);
 
         if(repo.OwnerId == request.UserId)
-            return Result<RepositoryMemberResponse>.Failure("The owner of the repository cannot be added as a member", ErrorType.BadRequest);
+            return Result<RepositoryMemberResponse>.Failure("The owner of the repository cannot be added as a member", ErrorType.Conflict);
 
         var alreadyMember = await unitOfWork.RepositoryMembers.IsMemberAsync(repositoryId, request.UserId);
 
         if (alreadyMember)
-            return Result<RepositoryMemberResponse>.Failure(
-                "User is already a member of this repository.",
-                ErrorType.Conflict);
+            return Result<RepositoryMemberResponse>.Failure("User is already a member of this repository.",ErrorType.Conflict);
 
         var member = mapper.Map<RepositoryMember>(request);
         member.RepositoryId = repositoryId;

@@ -18,14 +18,18 @@ public class PullRequestService(IUnitOfWork unitOfWork, IMapper mapper) : IPullR
         if (repo == null)
             return Result<PullRequestResponse>.Failure("Repository not found", ErrorType.NotFound);
 
-        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
+        if (repo.OwnerId != currentUserId)
+        {
 
-        if (membership == null)
-            return Result<PullRequestResponse>.Failure("You are not a member of this repository.",ErrorType.Forbidden);
+            var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
 
-        if (membership.Permission == RepositoryPermission.Viewer)
-            return Result<PullRequestResponse>.Failure("You don't have permission to create pull requests.", ErrorType.Forbidden);
+            if (membership == null)
+                return Result<PullRequestResponse>.Failure("You are not a member of this repository.", ErrorType.Forbidden);
 
+            if (membership.Permission == RepositoryPermission.Viewer)
+                return Result<PullRequestResponse>.Failure("You don't have permission to create pull requests.", ErrorType.Forbidden);
+
+        }
         var sourceBranch = await unitOfWork.Branches.GetByIdAsync(request.SourceBranchId);
 
         if (sourceBranch == null || sourceBranch.RepositoryId != repositoryId)

@@ -17,14 +17,17 @@ public class IssueService(IUnitOfWork unitOfWork, IMapper mapper) : IIssueServic
 
         if(repo == null)
             return Result<IssueResponse>.Failure("Repository not found.", ErrorType.NotFound);
+        if (repo.OwnerId != currentUserId)
+        {
+            var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
 
-        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
+            if (membership == null)
+                return Result<IssueResponse>.Failure("You are not a member of this repository");
 
-        if (membership == null)
-            return Result<IssueResponse>.Failure("You are not a member of this repository");
+            if (membership.Permission == RepositoryPermission.Viewer)
+                return Result<IssueResponse>.Failure("You don't have permission to create issues.", ErrorType.Forbidden);
 
-        if (membership.Permission == RepositoryPermission.Viewer)
-            return Result<IssueResponse>.Failure("You don't have permission to create issues.", ErrorType.Forbidden);
+        }
         
 
         var issue = mapper.Map<Issue>(request);
