@@ -35,17 +35,13 @@ public class RepositoryService(IUnitOfWork unitOfWork, IMapper mapper) : IReposi
                     currentUserId);
             if (membership is null)
             {
-                return Result<RepositoryResponse>.Failure(
-                    "You are not a member of this organization.",
-                    ErrorType.Forbidden);
+                return Result<RepositoryResponse>.Failure("You are not a member of this organization.",ErrorType.Forbidden);
             }
 
             if (membership.Role != OrganizationRole.Owner &&
                 membership.Role != OrganizationRole.Admin)
             {
-                return Result<RepositoryResponse>.Failure(
-                    "You don't have permission to create repositories in this organization.",
-                    ErrorType.Forbidden);
+                return Result<RepositoryResponse>.Failure("You don't have permission to create repositories in this organization.", ErrorType.Forbidden);
             }
 
             repository.OwnerId = null;
@@ -104,9 +100,6 @@ public class RepositoryService(IUnitOfWork unitOfWork, IMapper mapper) : IReposi
     {
         var repositories = await unitOfWork.Repositories.GetByOwnerIdAsync(ownerId);
 
-        if (repositories == null || repositories.Count == 0)
-            return Result<List<RepositoryResponse>>.Failure("No repositories found for this owner.",ErrorType.NotFound);
-
         var response = mapper.Map<List<RepositoryResponse>>(repositories);
 
         return Result<List<RepositoryResponse>>.Success(response,"Repositories retrieved successfully.");
@@ -129,31 +122,28 @@ public class RepositoryService(IUnitOfWork unitOfWork, IMapper mapper) : IReposi
         return Result<RepositoryResponse>.Success(response,"Repository retrieved successfully.");
     }
 
-    public async Task<Result<RepositoryResponse>> UpdateAsync(
-    int id,
-    UpdateRepositoryRequest request,
-    int currentUserId)
+    public async Task<Result<RepositoryResponse>> UpdateAsync(int id,UpdateRepositoryRequest request,int currentUserId)
     {
         var repo = await unitOfWork.Repositories.GetByIdAsync(id);
 
         if (repo == null)
-            return Result<RepositoryResponse>.Failure("Repository not found.", ErrorType.NotFound);
+            return Result<RepositoryResponse>.Failure("Repository not found.",ErrorType.NotFound);
 
-        var hasPermission = await HasManagePermissionAsync(repo,currentUserId);
+        var hasPermission = await HasManagePermissionAsync(repo, currentUserId);
 
         if (!hasPermission)
-            return Result<RepositoryResponse>.Failure("You don't have permission to update this repository.",ErrorType.Forbidden);
+            return Result<RepositoryResponse>.Failure("You don't have permission to update this repository.", ErrorType.Forbidden);
 
         if (repo.Name != request.Name)
         {
-            var exists = await unitOfWork.Repositories
-                .ExistsByNameAsync(request.Name);
+            var exists = await unitOfWork.Repositories.ExistsByNameAsync(
+                request.Name,
+                repo.OwnerId,
+                repo.OrganizationId);
 
             if (exists)
             {
-                return Result<RepositoryResponse>.Failure(
-                    "Repository with the same name already exists.",
-                    ErrorType.Conflict);
+                return Result<RepositoryResponse>.Failure("Repository with the same name already exists.",ErrorType.Conflict);
             }
         }
 

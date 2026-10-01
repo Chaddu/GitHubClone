@@ -17,6 +17,23 @@ public class ReviewService(IUnitOfWork unitOfWork, IMapper mapper) : IReviewServ
         if(pullRequest == null)
             return Result<ReviewResponse>.Failure("Pull request not found", ErrorType.NotFound);
 
+        var repository = await unitOfWork.Repositories.GetByIdAsync(pullRequest.RepositoryId);
+
+        if (repository == null)
+            return Result<ReviewResponse>.Failure("Repository not found.",ErrorType.NotFound);
+
+        var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(pullRequest.RepositoryId,currentUserId);
+
+        if (membership == null)
+            return Result<ReviewResponse>.Failure("You don't have permission to review this pull request.",ErrorType.Forbidden);
+
+        if (membership.Permission == RepositoryPermission.Viewer)
+        {
+            return Result<ReviewResponse>.Failure(
+                "You don't have permission to review this pull request.",
+                ErrorType.Forbidden);
+        }
+
         var user = await unitOfWork.Users.GetByIdAsync(currentUserId);
 
         if(user == null)
@@ -47,7 +64,7 @@ public class ReviewService(IUnitOfWork unitOfWork, IMapper mapper) : IReviewServ
             return Result.Failure("Review not found", ErrorType.NotFound);
 
         if(review.ReviewerId != currentUserId)
-            return Result.Failure("You are not allowed to delete this review", ErrorType.Unauthorized);
+            return Result.Failure("You are not allowed to delete this review", ErrorType.Forbidden);
 
         unitOfWork.Reviews.Delete(review);
         await unitOfWork.SaveChangesAsync();
@@ -55,24 +72,69 @@ public class ReviewService(IUnitOfWork unitOfWork, IMapper mapper) : IReviewServ
         return Result.Success();
     }
 
-    public async Task<Result<ReviewResponse>> GetByIdAsync(int id)
+    public async Task<Result<ReviewResponse>> GetByIdAsync(int id, int currentUserId)
     {
         var review = await unitOfWork.Reviews.GetByIdAsync(id);
 
         if(review == null)
             return Result<ReviewResponse>.Failure("Review not found", ErrorType.NotFound);
 
+        var pullRequest = await unitOfWork.PullRequests.GetByIdAsync(review.PullRequestId);
+
+        if (pullRequest == null)
+            return Result<ReviewResponse>.Failure("Pull request not found.",ErrorType.NotFound);
+
+        var repository = await unitOfWork.Repositories.GetByIdAsync(pullRequest.RepositoryId);
+
+        if (repository == null)
+            return Result<ReviewResponse>.Failure("Repository not found.",ErrorType.NotFound);
+
+        if (repository.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers
+                .GetMembershipAsync(
+                    repository.Id,
+                    currentUserId);
+
+            if (membership is null)
+            {
+                return Result<ReviewResponse>.Failure(
+                    "You do not have permission to view this review.",
+                    ErrorType.Forbidden);
+            }
+        }
+
         var response = mapper.Map<ReviewResponse>(review);
 
         return Result<ReviewResponse>.Success(response);
     }
 
-    public async Task<Result<List<ReviewResponse>>> GetByPullRequestIdAsync(int pullRequestId)
+    public async Task<Result<List<ReviewResponse>>> GetByPullRequestIdAsync(int pullRequestId, int currentUserId)
     {
         var pullRequest = await unitOfWork.PullRequests.GetByIdAsync(pullRequestId);
 
         if(pullRequest == null)
             return Result<List<ReviewResponse>>.Failure("Pull request not found", ErrorType.NotFound);
+
+        var repository = await unitOfWork.Repositories.GetByIdAsync(pullRequest.RepositoryId);
+
+        if (repository == null)
+            return Result<List<ReviewResponse>>.Failure("Repository not found.",ErrorType.NotFound);
+
+        if (repository.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers
+                .GetMembershipAsync(
+                    repository.Id,
+                    currentUserId);
+
+            if (membership is null)
+            {
+                return Result<List<ReviewResponse>>.Failure(
+                    "You do not have permission to view these reviews.",
+                    ErrorType.Forbidden);
+            }
+        }
 
         var reviews = await unitOfWork.Reviews.GetByPullRequestIdAsync(pullRequestId);
 

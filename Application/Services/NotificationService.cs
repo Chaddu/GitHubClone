@@ -53,9 +53,9 @@ public class NotificationService(IUnitOfWork unitOfWork, IMapper mapper) : INoti
     {
         var notif = await unitOfWork.Notifications.GetUnreadByUserIdAsync(currentUserId);
 
-        var resposne = mapper.Map<List<NotificationResponse>>(notif);
+        var response = mapper.Map<List<NotificationResponse>>(notif);
 
-        return Result<List<NotificationResponse>>.Success(resposne);
+        return Result<List<NotificationResponse>>.Success(response);
     }
 
     public async Task<Result> MarkAsReadAsync(int id, int currentUserId)
@@ -69,7 +69,7 @@ public class NotificationService(IUnitOfWork unitOfWork, IMapper mapper) : INoti
             return Result.Failure("You are not allowed to modify this notification", ErrorType.Forbidden);
 
         if (notif.IsRead)
-            return Result.Success("Notification is already marled as read");
+            return Result.Success("Notification is already marked as read");
 
         notif.IsRead = true;
 

@@ -13,7 +13,7 @@ public class ReviewController(IReviewService reviewService) : BaseController
     [HttpGet("pull-request/{pullRequestId:int}")]
     public async Task<IActionResult> GetByPullRequestId(int pullRequestId)
     {
-        var result = await reviewService.GetByPullRequestIdAsync(pullRequestId);
+        var result = await reviewService.GetByPullRequestIdAsync(pullRequestId, GetUserId());
 
         return HandleResult(result);
     }
@@ -29,7 +29,7 @@ public class ReviewController(IReviewService reviewService) : BaseController
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await reviewService.GetByIdAsync(id);
+        var result = await reviewService.GetByIdAsync(id, GetUserId());
 
         return HandleResult(result);
     }

@@ -10,18 +10,26 @@ namespace Application.Services;
 
 public class RepositoryStarService(IUnitOfWork unitOfWork, IMapper mapper) : IRepositoryStarService
 {
-    public async Task<Result<List<RepositoryStarResponse>>> GetByRepositoryIdAsync(int repositoryId)
+    public async Task<Result<List<RepositoryStarResponse>>> GetByRepositoryIdAsync(int repositoryId,int currentUserId)
     {
         var repo = await unitOfWork.Repositories.GetByIdAsync(repositoryId);
 
         if (repo == null)
-            return Result<List<RepositoryStarResponse>>.Failure("Repository was not found", ErrorType.NotFound);
+            return Result<List<RepositoryStarResponse>>.Failure("Repository was not found",ErrorType.NotFound);
+
+        if (repo.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
+
+            if (membership == null)
+                return Result<List<RepositoryStarResponse>>.Failure("You do not have permission to view this repository.",ErrorType.Forbidden);
+        }
 
         var stars = await unitOfWork.RepositoryStars.GetByRepositoryIdAsync(repositoryId);
 
-        var resposne = mapper.Map<List<RepositoryStarResponse>>(stars);
+        var response = mapper.Map<List<RepositoryStarResponse>>(stars);
 
-        return Result<List<RepositoryStarResponse>>.Success(resposne);
+        return Result<List<RepositoryStarResponse>>.Success(response);
     }
 
     public async Task<Result<List<RepositoryStarResponse>>> GetByUserIdAsync(int userId)
@@ -29,31 +37,39 @@ public class RepositoryStarService(IUnitOfWork unitOfWork, IMapper mapper) : IRe
         var user = await unitOfWork.Users.GetByIdAsync(userId);
 
         if (user == null)
-            return Result<List<RepositoryStarResponse>>.Failure("User was not found", ErrorType.NotFound);
+            return Result<List<RepositoryStarResponse>>.Failure("User was not found",ErrorType.NotFound);
 
         var stars = await unitOfWork.RepositoryStars.GetByUserIdAsync(userId);
 
         var response = mapper.Map<List<RepositoryStarResponse>>(stars);
 
-        return Result<List<RepositoryStarResponse>>.Success(response); 
+        return Result<List<RepositoryStarResponse>>.Success(response);
     }
 
-    public async Task<Result<RepositoryStarResponse>> StarAsync(int repositoryId, int currentUserId)
+    public async Task<Result<RepositoryStarResponse>> StarAsync(int repositoryId,int currentUserId)
     {
         var repo = await unitOfWork.Repositories.GetByIdAsync(repositoryId);
 
         if (repo == null)
-            return Result<RepositoryStarResponse>.Failure("Repository was not found", ErrorType.NotFound);
+            return Result<RepositoryStarResponse>.Failure("Repository was not found",ErrorType.NotFound);
 
-        var existingStar = await unitOfWork.RepositoryStars.GetByRepositoryAndUserAsync(currentUserId, repositoryId);
+        if (repo.Visibility == RepositoryVisibility.Private)
+        {
+            var membership = await unitOfWork.RepositoryMembers.GetMembershipAsync(repositoryId, currentUserId);
+
+            if (membership == null)
+                return Result<RepositoryStarResponse>.Failure("You do not have permission to view this repository.",ErrorType.Forbidden);
+        }
+
+        var existingStar = await unitOfWork.RepositoryStars.GetByRepositoryAndUserAsync(repositoryId, currentUserId);
 
         if (existingStar != null)
-            return Result<RepositoryStarResponse>.Failure("Yoou have already starred this repository", ErrorType.Conflict);
+            return Result<RepositoryStarResponse>.Failure("You have already starred this repository", ErrorType.Conflict);
 
         var star = new RepositoryStar
         {
             RepositoryId = repositoryId,
-            UserId = currentUserId,
+            UserId = currentUserId
         };
 
         await unitOfWork.RepositoryStars.AddASync(star);
@@ -66,15 +82,15 @@ public class RepositoryStarService(IUnitOfWork unitOfWork, IMapper mapper) : IRe
 
     public async Task<Result> UnstarAsync(int repositoryId, int currentUserId)
     {
-        var star = await unitOfWork.RepositoryStars.GetByRepositoryAndUserAsync(repositoryId, currentUserId);
+        var star = await unitOfWork.RepositoryStars
+            .GetByRepositoryAndUserAsync(repositoryId, currentUserId);
 
         if (star == null)
-            return Result.Failure("You have not starred this repository", ErrorType.NotFound);
+            return Result.Failure("You have not starred this repository",ErrorType.NotFound);
 
         unitOfWork.RepositoryStars.Delete(star);
         await unitOfWork.SaveChangesAsync();
 
         return Result.Success("Repository unstarred successfully.");
-
     }
 }

@@ -13,7 +13,7 @@ public class RepositoryStarController(IRepositoryStarService repositoryStarServi
     public async Task<IActionResult> GetByRepositoryId(int repositoryId)
     {
         var result =
-            await repositoryStarService.GetByRepositoryIdAsync(repositoryId);
+            await repositoryStarService.GetByRepositoryIdAsync(repositoryId, GetUserId());
 
         return HandleResult(result);
     }
@@ -21,8 +21,7 @@ public class RepositoryStarController(IRepositoryStarService repositoryStarServi
     [HttpGet("user/{userId:int}")]
     public async Task<IActionResult> GetByUserId(int userId)
     {
-        var result =
-            await repositoryStarService.GetByUserIdAsync(userId);
+        var result = await repositoryStarService.GetByUserIdAsync(userId);
 
         return HandleResult(result);
     }
@@ -30,8 +29,7 @@ public class RepositoryStarController(IRepositoryStarService repositoryStarServi
     [HttpPost("repository/{repositoryId:int}")]
     public async Task<IActionResult> Star(int repositoryId)
     {
-        var result =
-            await repositoryStarService.StarAsync(repositoryId, GetUserId());
+        var result = await repositoryStarService.StarAsync(repositoryId, GetUserId());
 
         return HandleResult(result);
     }
@@ -39,8 +37,7 @@ public class RepositoryStarController(IRepositoryStarService repositoryStarServi
     [HttpDelete("repository/{repositoryId:int}")]
     public async Task<IActionResult> Unstar(int repositoryId)
     {
-        var result =
-            await repositoryStarService.UnstarAsync(repositoryId, GetUserId());
+        var result = await repositoryStarService.UnstarAsync(repositoryId, GetUserId());
 
         return HandleResult(result);
     }
